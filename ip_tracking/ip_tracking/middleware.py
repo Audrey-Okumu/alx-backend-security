@@ -1,6 +1,7 @@
 import logging
+from django.http import HttpResponseForbidden
 from django.utils import timezone
-from .models import RequestLog
+from .models import RequestLog, BlockedIP
 
 logger = logging.getLogger(__name__)
 
@@ -16,11 +17,18 @@ class IPLoggingMiddleware:
         path = request.path
         timestamp = timezone.now()
 
-        # Log the data to the database
-        RequestLog.objects.create(ip_address=ip_address, path=path, timestamp=timestamp)
+        #  Check if IP is blocked 
+        if BlockedIP.objects.filter(ip_address=ip_address).exists():
+            logger.warning(f"Blocked request from IP: {ip_address}")
+            return HttpResponseForbidden("Access denied: your IP is blocked.")
 
-        # Optionally log to console/file
-        logger.info(f"IP: {ip_address} | Path: {path} | Time: {timestamp}")
+        #  Log request details 
+        try:
+            RequestLog.objects.create(ip_address=ip_address, path=path, timestamp=timestamp)
+            logger.info(f"IP: {ip_address} | Path: {path} | Time: {timestamp}")
+        except Exception as e:
+            logger.error(f"Failed to log request from {ip_address}: {e}")
+
 
         response = self.get_response(request)
         return response
