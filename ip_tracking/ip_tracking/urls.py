@@ -16,7 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from .views import anonymous_login, sensitive_action
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('login/', anonymous_login, name='login'),
+    path('sensitive/', sensitive_action, name='sensitive'),
 ]
